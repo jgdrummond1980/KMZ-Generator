@@ -12,6 +12,7 @@ def extract_metadata_with_exiftool(file_path):
             ["exiftool", "-gpslatitude", "-gpslongitude", "-gpsimgdirection", file_path],
             stdout=subprocess.PIPE,
             text=True,
+            check=True,
         )
         metadata = result.stdout.strip().splitlines()
         gps_data = {}
@@ -27,6 +28,9 @@ def extract_metadata_with_exiftool(file_path):
                 "longitude": convert_to_decimal(gps_data["gps_longitude"]),
                 "orientation": gps_data.get("gps_img_direction", "Unknown"),
             }
+        return None
+    except FileNotFoundError:
+        st.error("ExifTool is not installed or cannot be found in the environment. Please check your deployment setup.")
         return None
     except Exception as e:
         st.error(f"Metadata extraction failed: {e}")
