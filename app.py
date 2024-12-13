@@ -1,9 +1,20 @@
 import os
 import tempfile
 import zipfile
+import requests
 from PIL import Image, ExifTags
 import simplekml
 import streamlit as st
+
+
+def download_fan_image(fan_image_url, destination):
+    """Download the fan image from GitHub and save it to the destination."""
+    response = requests.get(fan_image_url, stream=True)
+    if response.status_code == 200:
+        with open(destination, "wb") as f:
+            f.write(response.content)
+    else:
+        raise ValueError(f"Failed to download fan image from {fan_image_url}")
 
 
 def correct_image_orientation(image):
@@ -121,10 +132,9 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     if not has_data:
         raise ValueError("No valid GPS metadata found in the uploaded images.")
 
-    # Save the fan image to the temporary folder
+    # Add fan image to the temporary folder
     fan_image_dest = os.path.join(folder_path, "Fan.png")
-    with open(fan_image_dest, "wb") as f:
-        f.write(open(fan_image_path, "rb").read())
+    os.rename(fan_image_path, fan_image_dest)
 
     # Save KML file
     kml_file = os.path.join(folder_path, "doc.kml")
@@ -150,7 +160,8 @@ uploaded_files = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
-fan_image_path = "/mnt/data/Fan.png"  # Path to the fan overlay image
+# GitHub-hosted Fan.png URL
+fan_image_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Fan.png"
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
 
 if st.button("Generate KMZ with Fan Overlays"):
@@ -159,6 +170,10 @@ if st.button("Generate KMZ with Fan Overlays"):
     else:
         try:
             with tempfile.TemporaryDirectory() as tmp_dir:
+                # Download the fan image into the temporary directory
+                fan_image_path = os.path.join(tmp_dir, "Fan.png")
+                download_fan_image(fan_image_url, fan_image_path)
+
                 for uploaded_file in uploaded_files:
                     file_path = os.path.join(tmp_dir, uploaded_file.name)
                     with open(file_path, "wb") as f:
