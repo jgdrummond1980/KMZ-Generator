@@ -1,7 +1,7 @@
 # Base image with Python
 FROM python:3.9-slim
 
-# Install system dependencies
+# Install system dependencies, including ExifTool and libheif for HEIC support
 RUN apt-get update && apt-get install -y \
     exiftool \
     libheif-dev \
