@@ -93,10 +93,10 @@ def get_gps_metadata(image_path):
             date_time = exif_data.get(36867, "Unknown Date/Time")
 
             return {
-                "latitude": round(lat, 6),
-                "longitude": round(lon, 6),
-                "elevation": round(elevation, 2),
-                "orientation": round(orientation, 1),
+                "latitude": lat,
+                "longitude": lon,
+                "elevation": elevation,
+                "orientation": orientation,
                 "date_time": date_time,
             }
         return None
@@ -159,6 +159,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
         if metadata:
             has_data = True
             lat, lon = metadata["latitude"], metadata["longitude"]
+            elevation = metadata["elevation"]
             orientation = metadata["orientation"]
             date_time = metadata["date_time"]
 
