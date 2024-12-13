@@ -156,8 +156,8 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
 
 # Streamlit App
-st.set_page_config(page_title="KMZ Generator with Fan Overlay", layout="wide")
-st.title("JPEG/PNG to KMZ Converter with Fan Overlays")
+st.set_page_config(page_title="KMZ Generator", layout="wide")
+st.title("JPEG/PNG to KMZ Converter")
 
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
@@ -169,7 +169,7 @@ uploaded_files = st.file_uploader(
 fan_image_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Fan.png"
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
 
-if st.button("Generate KMZ with Fan Overlays"):
+if st.button("Generate KMZ"):
     if not uploaded_files:
         st.error("Please upload at least one photo.")
     else:
@@ -189,7 +189,7 @@ if st.button("Generate KMZ with Fan Overlays"):
 
                 with open(output_kmz_path, "rb") as f:
                     st.download_button(
-                        label="Download KMZ with Fan Overlays",
+                        label="Download KMZ",
                         data=f,
                         file_name=output_kmz_name,
                         mime="application/vnd.google-earth.kmz"
