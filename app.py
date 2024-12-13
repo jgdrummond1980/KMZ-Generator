@@ -1,6 +1,6 @@
 import os
 import tempfile
-import zipfile  # Added import for zipfile
+import zipfile
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import simplekml
@@ -74,8 +74,12 @@ def create_kmz(folder_path, output_kmz):
 
             # Create a placemark
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
-            pnt.description = f"Orientation: {orientation}"
-            pnt.style.iconstyle.icon.href = image_name
+            pnt.description = (
+                f"Orientation: {orientation}<br>"
+                f'<a href="{image_name}" target="_blank">View Image</a>'
+            )
+            # Set the placemark to a blue dot
+            pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
 
             # Add image to KMZ package
             kmz_images.append((image_name, image_path))
