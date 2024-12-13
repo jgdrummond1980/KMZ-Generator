@@ -8,15 +8,15 @@ import streamlit as st
 
 
 def download_fan_image(fan_image_url, destination):
-    """Download the fan image from GitHub and rotate it by 90 degrees."""
+    """Download the fan image from GitHub and rotate it by -90 degrees."""
     response = requests.get(fan_image_url, stream=True)
     if response.status_code == 200:
         with open(destination, "wb") as f:
             f.write(response.content)
         
-        # Open the downloaded image and rotate it by 90 degrees
+        # Open the downloaded image and rotate it by -90 degrees
         with Image.open(destination) as img:
-            rotated_img = img.rotate(90, expand=True)
+            rotated_img = img.rotate(-90, expand=True)
             rotated_img.save(destination)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
@@ -125,11 +125,11 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             overlay_name = f"Overlay - {image_name}"
             ground_overlay = kml.newgroundoverlay(name=overlay_name)
             ground_overlay.icon.href = "Fan.png"  # Refer to the fan image
-            ground_overlay.latlonbox.north = lat + 0.0002  # Adjust size to 20px
-            ground_overlay.latlonbox.south = lat - 0.0002
-            ground_overlay.latlonbox.east = lon + 0.0002
-            ground_overlay.latlonbox.west = lon - 0.0002
-            ground_overlay.latlonbox.rotation = orientation - 90  # Align orientation to top of Fan.png
+            ground_overlay.latlonbox.north = lat + 0.0001  # Adjust size to 10px
+            ground_overlay.latlonbox.south = lat - 0.0001
+            ground_overlay.latlonbox.east = lon + 0.0001
+            ground_overlay.latlonbox.west = lon - 0.0001
+            ground_overlay.latlonbox.rotation = orientation - 90  # Align orientation to top of rotated Fan.png
 
             # Add images and fan overlay to KMZ package
             kmz_images.append((image_name, corrected_image_path))
