@@ -1,37 +1,36 @@
 import os
 import tempfile
-from PIL import Image
-from pillow_heif import register_heif_opener
 from simplekml import Kml
 import streamlit as st
 import subprocess
 
-# Register HEIF format with Pillow
-register_heif_opener()
-
 
 def extract_metadata_with_exiftool(file_path):
     """Extract metadata (Exif or XMP) using ExifTool."""
-    result = subprocess.run(
-        ["exiftool", "-gpslatitude", "-gpslongitude", "-gpsimgdirection", file_path],
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    metadata = result.stdout.strip().splitlines()
-    gps_data = {}
-    for line in metadata:
-        key, value = line.split(":", 1)
-        key = key.strip().lower().replace(" ", "_")
-        value = value.strip()
-        gps_data[key] = value
+    try:
+        result = subprocess.run(
+            ["exiftool", "-gpslatitude", "-gpslongitude", "-gpsimgdirection", file_path],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        metadata = result.stdout.strip().splitlines()
+        gps_data = {}
+        for line in metadata:
+            key, value = line.split(":", 1)
+            key = key.strip().lower().replace(" ", "_")
+            value = value.strip()
+            gps_data[key] = value
 
-    if "gps_latitude" in gps_data and "gps_longitude" in gps_data:
-        return {
-            "latitude": convert_to_decimal(gps_data["gps_latitude"]),
-            "longitude": convert_to_decimal(gps_data["gps_longitude"]),
-            "orientation": gps_data.get("gps_img_direction", "Unknown"),
-        }
-    return None
+        if "gps_latitude" in gps_data and "gps_longitude" in gps_data:
+            return {
+                "latitude": convert_to_decimal(gps_data["gps_latitude"]),
+                "longitude": convert_to_decimal(gps_data["gps_longitude"]),
+                "orientation": gps_data.get("gps_img_direction", "Unknown"),
+            }
+        return None
+    except Exception as e:
+        st.error(f"Metadata extraction failed: {e}")
+        return None
 
 
 def convert_to_decimal(coord):
@@ -77,6 +76,7 @@ def create_kmz(folder_path, output_kmz):
 
 
 # Streamlit App
+st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("HEIC, Exif, and XMP to KMZ Converter")
 
 uploaded_files = st.file_uploader(
