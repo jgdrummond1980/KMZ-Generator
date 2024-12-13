@@ -6,6 +6,7 @@ import simplekml
 import zipfile
 import streamlit as st
 
+
 def get_gps_metadata(image_path):
     """Extract GPS metadata from an image."""
     image = Image.open(image_path)
@@ -52,3 +53,61 @@ def create_kmz(folder_path, output_kmz):
     kmz_images = []
 
     for image_path in image_paths:
+        metadata = get_gps_metadata(image_path)
+        if metadata:
+            lat, lon = metadata["latitude"], metadata["longitude"]
+            orientation = metadata.get("orientation", "Unknown")
+            image_name = os.path.basename(image_path)
+
+            # Create a placemark
+            pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
+            pnt.description = f"Orientation: {orientation}"
+            pnt.style.iconstyle.icon.href = image_name  # Link to the image in KMZ
+
+            # Add image to KMZ package
+            kmz_images.append((image_name, image_path))
+
+    # Save KML file
+    kml_file = os.path.join(folder_path, "doc.kml")
+    kml.save(kml_file)
+
+    # Create KMZ file
+    with zipfile.ZipFile(output_kmz, 'w') as kmz:
+        kmz.write(kml_file, "doc.kml")
+        for img_name, img_path in kmz_images:
+            kmz.write(img_path, img_name)
+
+    os.remove(kml_file)  # Clean up temporary KML file
+
+
+# Streamlit App
+st.title("Geotagged Photos to KMZ Converter")
+
+uploaded_files = st.file_uploader(
+    "Upload geotagged photos (JPG, PNG):",
+    accept_multiple_files=True,
+    type=["jpg", "jpeg", "png"]
+)
+
+output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
+
+if st.button("Generate KMZ"):
+    if not uploaded_files:
+        st.error("Please upload at least one photo.")
+    else:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            for uploaded_file in uploaded_files:
+                file_path = os.path.join(tmp_dir, uploaded_file.name)
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.read())
+
+            output_kmz_path = os.path.join(tmp_dir, output_kmz_name)
+            create_kmz(tmp_dir, output_kmz_path)
+
+            with open(output_kmz_path, "rb") as f:
+                st.download_button(
+                    label="Download KMZ",
+                    data=f,
+                    file_name=output_kmz_name,
+                    mime="application/vnd.google-earth.kmz"
+                )
