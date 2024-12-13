@@ -47,14 +47,9 @@ def get_gps_metadata(image_path):
             return None
 
         def convert_to_degrees(value):
-            if isinstance(value, tuple):
-                d = float(value[0])
-                m = float(value[1])
-                s = float(value[2])
-            else:
-                d = float(value[0].numerator) / float(value[0].denominator)
-                m = float(value[1].numerator) / float(value[1].denominator)
-                s = float(value[2].numerator) / float(value[2].denominator)
+            d = float(value[0][0]) / float(value[0][1])
+            m = float(value[1][0]) / float(value[1][1])
+            s = float(value[2][0]) / float(value[2][1])
             return d + (m / 60.0) + (s / 3600.0)
 
         if "GPSLatitude" in gps_info and "GPSLongitude" in gps_info:
@@ -71,7 +66,7 @@ def get_gps_metadata(image_path):
             }
         return None
     except Exception as e:
-        st.error(f"Error extracting metadata: {e}")
+        st.error(f"Error extracting metadata from {image_path}: {e}")
         return None
 
 
