@@ -1,10 +1,30 @@
 import os
 import tempfile
 import zipfile
-from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
+from PIL import Image, ExifTags
 import simplekml
 import streamlit as st
+
+
+def correct_image_orientation(image_path):
+    """Correct image orientation based on Exif data."""
+    try:
+        image = Image.open(image_path)
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == "Orientation":
+                break
+
+        exif = image._getexif()
+        if exif and orientation in exif:
+            if exif[orientation] == 3:
+                image = image.rotate(180, expand=True)
+            elif exif[orientation] == 6:
+                image = image.rotate(270, expand=True)
+            elif exif[orientation] == 8:
+                image = image.rotate(90, expand=True)
+        image.save(image_path)  # Overwrite the original file
+    except Exception as e:
+        st.warning(f"Could not adjust image orientation for {image_path}: {e}")
 
 
 def get_gps_metadata(image_path):
@@ -17,10 +37,10 @@ def get_gps_metadata(image_path):
 
         gps_info = {}
         for tag, value in exif_data.items():
-            tag_name = TAGS.get(tag, tag)
+            tag_name = ExifTags.TAGS.get(tag, tag)
             if tag_name == "GPSInfo":
                 for t, val in value.items():
-                    gps_tag = GPSTAGS.get(t, t)
+                    gps_tag = ExifTags.GPSTAGS.get(t, t)
                     gps_info[gps_tag] = val
 
         if not gps_info:
@@ -63,6 +83,10 @@ def create_kmz(folder_path, output_kmz):
     has_data = False
 
     for image_path in image_paths:
+        # Correct the image orientation
+        correct_image_orientation(image_path)
+
+        # Extract GPS metadata
         metadata = get_gps_metadata(image_path)
         if metadata:
             has_data = True
@@ -72,7 +96,7 @@ def create_kmz(folder_path, output_kmz):
 
             # Create a placemark
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
-            # Embed the image in the description with a larger size and a download link
+            # Embed the image in the description with a download link
             pnt.description = (
                 f"Orientation: {orientation}<br>"
                 f'<img src="{image_name}" alt="Image" width="800" /><br>'
