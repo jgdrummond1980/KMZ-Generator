@@ -26,6 +26,18 @@ def correct_image_orientation(image):
     return image
 
 
+def convert_to_degrees(value):
+    """Convert GPS coordinates to degrees."""
+    try:
+        d = float(value[0].numerator) / float(value[0].denominator) if isinstance(value[0], tuple) else float(value[0])
+        m = float(value[1].numerator) / float(value[1].denominator) if isinstance(value[1], tuple) else float(value[1])
+        s = float(value[2].numerator) / float(value[2].denominator) if isinstance(value[2], tuple) else float(value[2])
+        return d + (m / 60.0) + (s / 3600.0)
+    except Exception as e:
+        st.warning(f"Error converting GPS value to degrees: {e}")
+        return None
+
+
 def get_gps_metadata(image_path):
     """Extract GPS metadata from a JPEG/PNG image."""
     try:
@@ -44,12 +56,6 @@ def get_gps_metadata(image_path):
 
         if not gps_info:
             return None
-
-        def convert_to_degrees(value):
-            d = float(value[0][0]) / float(value[0][1])
-            m = float(value[1][0]) / float(value[1][1])
-            s = float(value[2][0]) / float(value[2][1])
-            return d + (m / 60.0) + (s / 3600.0)
 
         if "GPSLatitude" in gps_info and "GPSLongitude" in gps_info:
             lat = convert_to_degrees(gps_info["GPSLatitude"])
