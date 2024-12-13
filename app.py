@@ -159,6 +159,14 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
 
+# Initialize session state for resetting
+if "reset" not in st.session_state:
+    st.session_state.reset = False
+
+if st.session_state.reset:
+    st.session_state.reset = False
+    st.experimental_rerun()
+
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
     accept_multiple_files=True,
@@ -196,9 +204,9 @@ if st.button("Generate KMZ"):
                             file_name=output_kmz_name,
                             mime="application/vnd.google-earth.kmz"
                         )
-                
-                # Reset the page after download
-                st.experimental_rerun()
+
+                # Reset session state to clear files
+                st.session_state.reset = True
             except ValueError as e:
                 st.error(str(e))
             except Exception as e:
