@@ -29,9 +29,9 @@ def correct_image_orientation(image):
 def convert_to_degrees(value):
     """Convert GPS coordinates to degrees."""
     try:
-        d = float(value[0].numerator) / float(value[0].denominator) if isinstance(value[0], tuple) else float(value[0])
-        m = float(value[1].numerator) / float(value[1].denominator) if isinstance(value[1], tuple) else float(value[1])
-        s = float(value[2].numerator) / float(value[2].denominator) if isinstance(value[2], tuple) else float(value[2])
+        d = float(value[0][0]) / float(value[0][1]) if isinstance(value[0], tuple) else float(value[0])
+        m = float(value[1][0]) / float(value[1][1]) if isinstance(value[1], tuple) else float(value[1])
+        s = float(value[2][0]) / float(value[2][1]) if isinstance(value[2], tuple) else float(value[2])
         return d + (m / 60.0) + (s / 3600.0)
     except Exception as e:
         st.warning(f"Error converting GPS value to degrees: {e}")
@@ -103,7 +103,7 @@ def create_kmz(folder_path, output_kmz):
             pnt.description = (
                 f"Orientation: {orientation}<br>"
                 f'<img src="{image_name}" alt="Image" width="800" /><br>'
-                f'<a href="{image_name}" download="{image_name}">Download Image</a>'
+                f'<a href="{image_name}" target="_blank">Download Image</a>'
             )
             # Set the placemark to a blue dot
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
