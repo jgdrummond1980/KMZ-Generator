@@ -6,10 +6,9 @@ import simplekml
 import streamlit as st
 
 
-def correct_image_orientation(image_path):
+def correct_image_orientation(image):
     """Correct image orientation based on Exif data."""
     try:
-        image = Image.open(image_path)
         for orientation in ExifTags.TAGS.keys():
             if ExifTags.TAGS[orientation] == "Orientation":
                 break
@@ -22,9 +21,9 @@ def correct_image_orientation(image_path):
                 image = image.rotate(270, expand=True)
             elif exif[orientation] == 8:
                 image = image.rotate(90, expand=True)
-        image.save(image_path)  # Overwrite the original file
     except Exception as e:
-        st.warning(f"Could not adjust image orientation for {image_path}: {e}")
+        st.warning(f"Could not adjust image orientation: {e}")
+    return image
 
 
 def get_gps_metadata(image_path):
@@ -78,9 +77,6 @@ def create_kmz(folder_path, output_kmz):
     has_data = False
 
     for image_path in image_paths:
-        # Correct the image orientation
-        correct_image_orientation(image_path)
-
         # Extract GPS metadata
         metadata = get_gps_metadata(image_path)
         if metadata:
@@ -88,6 +84,12 @@ def create_kmz(folder_path, output_kmz):
             lat, lon = metadata["latitude"], metadata["longitude"]
             orientation = metadata.get("orientation", "Unknown")
             image_name = os.path.basename(image_path)
+
+            # Open image, correct orientation, and save corrected copy
+            image = Image.open(image_path)
+            corrected_image = correct_image_orientation(image)
+            corrected_image_path = os.path.join(folder_path, image_name)
+            corrected_image.save(corrected_image_path)
 
             # Create a placemark
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
@@ -100,8 +102,8 @@ def create_kmz(folder_path, output_kmz):
             # Set the placemark to a blue dot
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
 
-            # Add image to KMZ package
-            kmz_images.append((image_name, image_path))
+            # Add corrected image to KMZ package
+            kmz_images.append((image_name, corrected_image_path))
 
     if not has_data:
         raise ValueError("No valid GPS metadata found in the uploaded images.")
