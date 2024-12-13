@@ -90,11 +90,14 @@ def get_gps_metadata(image_path):
             orientation = gps_info.get("GPSImgDirection", 0)
             orientation = float(orientation[0]) / float(orientation[1]) if isinstance(orientation, tuple) else orientation
 
+            date_time = exif_data.get(36867, "Unknown Date/Time")
+
             return {
-                "latitude": lat,
-                "longitude": lon,
-                "elevation": elevation,
-                "orientation": orientation,
+                "latitude": round(lat, 3),
+                "longitude": round(lon, 3),
+                "elevation": round(elevation, 3),
+                "orientation": round(orientation, 3),
+                "date_time": date_time,
             }
         return None
     except Exception as e:
@@ -104,28 +107,30 @@ def get_gps_metadata(image_path):
 
 def annotate_image(image_path, metadata):
     """
-    Annotate the image with easting, northing, elevation at the top,
+    Annotate the image with lat, lon, alt, orientation at the top,
     and date/time at the bottom-left.
     """
     # Open the image
     image = Image.open(image_path)
+    image = correct_image_orientation(image)
     draw = ImageDraw.Draw(image)
 
     # Set fonts (use default font if no TTF file is available)
     try:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        font = ImageFont.truetype(font_path, 32)  # Increased font size for better readability
+        font = ImageFont.truetype(font_path, 32)  # Font size increased for readability
     except IOError:
         font = ImageFont.load_default()
 
     # Extract metadata
-    easting = metadata.get("easting", "Unknown Easting")
-    northing = metadata.get("northing", "Unknown Northing")
-    elevation = metadata.get("elevation", "Unknown Elevation")
+    lat = metadata.get("latitude", "Unknown")
+    lon = metadata.get("longitude", "Unknown")
+    elevation = metadata.get("elevation", "Unknown")
+    orientation = metadata.get("orientation", "Unknown")
     date_time = metadata.get("date_time", "Unknown Date/Time")
 
-    # Add text at the top (easting, northing, elevation)
-    top_text = f"E: {easting:.2f}, N: {northing:.2f}, Elev: {elevation:.2f} m"
+    # Add text at the top (lat, lon, alt, orientation)
+    top_text = f"Lat: {lat}, Lon: {lon}, Alt: {elevation} m, Orientation: {orientation}°"
     draw.text((10, 10), top_text, fill="white", font=font)
 
     # Add text at the bottom-left (date/time)
@@ -154,25 +159,16 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
         if metadata:
             has_data = True
             lat, lon = metadata["latitude"], metadata["longitude"]
-            orientation = float(metadata["orientation"])
-            easting = lon * 111319.9  # Approximate conversion
-            northing = lat * 111319.9  # Approximate conversion
-            elevation = metadata.get("elevation", 0)  # Placeholder elevation
-            date_time = "14 Feb 2023, 10:41:30"  # Example timestamp, replace with actual if available
+            orientation = metadata["orientation"]
+            date_time = metadata["date_time"]
 
             # Annotate the image with metadata
-            image_metadata = {
-                "easting": easting,
-                "northing": northing,
-                "elevation": elevation,
-                "date_time": date_time,
-            }
-            annotated_image_path = annotate_image(image_path, image_metadata)
+            annotated_image_path = annotate_image(image_path, metadata)
 
             # Add a placemark
             pnt = kml.newpoint(name=os.path.basename(image_path), coords=[(lon, lat)])
             pnt.description = (
-                f"Orientation: {orientation}<br>"
+                f"Orientation: {orientation}°<br>"
                 f'<img src="{os.path.basename(annotated_image_path)}" alt="Image" width="800" />'
             )
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
