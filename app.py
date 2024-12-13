@@ -3,10 +3,21 @@ import tempfile
 from simplekml import Kml
 import streamlit as st
 import subprocess
+import shutil
+
+
+def check_exiftool():
+    """Verify if ExifTool is installed and accessible."""
+    if not shutil.which("exiftool"):
+        st.error("ExifTool is not installed or cannot be found in the environment. Please check your deployment setup.")
+        return False
+    return True
 
 
 def extract_metadata_with_exiftool(file_path):
     """Extract metadata (Exif or XMP) using ExifTool."""
+    if not check_exiftool():
+        return None
     try:
         result = subprocess.run(
             ["exiftool", "-gpslatitude", "-gpslongitude", "-gpsimgdirection", file_path],
@@ -30,7 +41,7 @@ def extract_metadata_with_exiftool(file_path):
             }
         return None
     except FileNotFoundError:
-        st.error("ExifTool is not installed or cannot be found in the environment. Please check your deployment setup.")
+        st.error("ExifTool is not installed or cannot be found in the environment.")
         return None
     except Exception as e:
         st.error(f"Metadata extraction failed: {e}")
