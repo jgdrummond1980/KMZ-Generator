@@ -26,9 +26,16 @@ def get_gps_metadata(image_path):
             return None
 
         def convert_to_degrees(value):
-            d = value[0][0] / value[0][1]
-            m = value[1][0] / value[1][1]
-            s = value[2][0] / value[2][1]
+            # Check if the value is a tuple of tuples
+            if isinstance(value, tuple):
+                d = float(value[0])
+                m = float(value[1])
+                s = float(value[2])
+            else:
+                # Handle IFDRational objects
+                d = float(value[0].numerator) / float(value[0].denominator)
+                m = float(value[1].numerator) / float(value[1].denominator)
+                s = float(value[2].numerator) / float(value[2].denominator)
             return d + (m / 60.0) + (s / 3600.0)
 
         if "GPSLatitude" in gps_info and "GPSLongitude" in gps_info:
