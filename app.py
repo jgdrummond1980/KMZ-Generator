@@ -8,11 +8,16 @@ import streamlit as st
 
 
 def download_fan_image(fan_image_url, destination):
-    """Download the fan image from GitHub and save it to the destination."""
+    """Download the fan image from GitHub and rotate it by 90 degrees."""
     response = requests.get(fan_image_url, stream=True)
     if response.status_code == 200:
         with open(destination, "wb") as f:
             f.write(response.content)
+        
+        # Open the downloaded image and rotate it by 90 degrees
+        with Image.open(destination) as img:
+            rotated_img = img.rotate(90, expand=True)
+            rotated_img.save(destination)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
 
