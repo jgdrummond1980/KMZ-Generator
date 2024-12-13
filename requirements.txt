@@ -1,3 +1,5 @@
 streamlit
-Pillow
+pillow
 simplekml
+pyheif
+exiftool-wrapper
