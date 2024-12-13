@@ -173,28 +173,30 @@ if st.button("Generate KMZ"):
     if not uploaded_files:
         st.error("Please upload at least one photo.")
     else:
-        try:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                # Download the fan image into the temporary directory
-                fan_image_path = os.path.join(tmp_dir, "Fan.png")
-                download_fan_image(fan_image_url, fan_image_path)
+        # Display loading spinner
+        with st.spinner("Generating KMZ file, please wait..."):
+            try:
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    # Download the fan image into the temporary directory
+                    fan_image_path = os.path.join(tmp_dir, "Fan.png")
+                    download_fan_image(fan_image_url, fan_image_path)
 
-                for uploaded_file in uploaded_files:
-                    file_path = os.path.join(tmp_dir, uploaded_file.name)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.read())
+                    for uploaded_file in uploaded_files:
+                        file_path = os.path.join(tmp_dir, uploaded_file.name)
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.read())
 
-                output_kmz_path = os.path.join(tmp_dir, output_kmz_name)
-                create_kmz_with_fan_overlay(tmp_dir, output_kmz_path, fan_image_path)
+                    output_kmz_path = os.path.join(tmp_dir, output_kmz_name)
+                    create_kmz_with_fan_overlay(tmp_dir, output_kmz_path, fan_image_path)
 
-                with open(output_kmz_path, "rb") as f:
-                    st.download_button(
-                        label="Download KMZ",
-                        data=f,
-                        file_name=output_kmz_name,
-                        mime="application/vnd.google-earth.kmz"
-                    )
-        except ValueError as e:
-            st.error(str(e))
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+                    with open(output_kmz_path, "rb") as f:
+                        st.download_button(
+                            label="Download KMZ",
+                            data=f,
+                            file_name=output_kmz_name,
+                            mime="application/vnd.google-earth.kmz"
+                        )
+            except ValueError as e:
+                st.error(str(e))
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
