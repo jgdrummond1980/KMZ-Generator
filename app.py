@@ -6,21 +6,19 @@ from PIL import Image, ExifTags
 import simplekml
 import streamlit as st
 
-
 def download_fan_image(fan_image_url, destination):
     """Download the fan image from GitHub and rotate it by -90 degrees."""
     response = requests.get(fan_image_url, stream=True)
     if response.status_code == 200:
         with open(destination, "wb") as f:
             f.write(response.content)
-        
+
         # Open the downloaded image and rotate it by -90 degrees
         with Image.open(destination) as img:
             rotated_img = img.rotate(-90, expand=True)
             rotated_img.save(destination)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
-
 
 def correct_image_orientation(image):
     """Correct image orientation based on Exif data."""
@@ -41,7 +39,6 @@ def correct_image_orientation(image):
         st.warning(f"Could not adjust image orientation: {e}")
     return image
 
-
 def convert_to_degrees(value):
     """Convert GPS coordinates to degrees."""
     try:
@@ -52,7 +49,6 @@ def convert_to_degrees(value):
     except Exception as e:
         st.warning(f"Error converting GPS value to degrees: {e}")
         return None
-
 
 def get_gps_metadata(image_path):
     """Extract GPS metadata from a JPEG/PNG image."""
@@ -90,11 +86,10 @@ def get_gps_metadata(image_path):
         st.error(f"Error extracting metadata from {image_path}: {e}")
         return None
 
-
 def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     """Generate a KMZ file with fan overlays and placemarks."""
     kml = simplekml.Kml()
-    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
     kmz_images = []
     has_data = False
 
@@ -154,7 +149,6 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
     os.remove(kml_file)  # Clean up temporary KML file
 
-
 # Streamlit App
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
@@ -165,6 +159,8 @@ uploaded_files = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
+# GitHub-hosted Fan.png URL
+fan_image_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Fan.png"
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
 
 if st.button("Generate KMZ"):
@@ -194,7 +190,6 @@ if st.button("Generate KMZ"):
                             file_name=output_kmz_name,
                             mime="application/vnd.google-earth.kmz"
                         )
-                st.success("KMZ file generated successfully!")
             except ValueError as e:
                 st.error(str(e))
             except Exception as e:
