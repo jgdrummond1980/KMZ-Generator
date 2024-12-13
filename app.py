@@ -27,13 +27,11 @@ def get_gps_metadata(image_path):
             return None
 
         def convert_to_degrees(value):
-            # Check if the value is a tuple of tuples
             if isinstance(value, tuple):
                 d = float(value[0])
                 m = float(value[1])
                 s = float(value[2])
             else:
-                # Handle IFDRational objects
                 d = float(value[0].numerator) / float(value[0].denominator)
                 m = float(value[1].numerator) / float(value[1].denominator)
                 s = float(value[2].numerator) / float(value[2].denominator)
@@ -74,9 +72,10 @@ def create_kmz(folder_path, output_kmz):
 
             # Create a placemark
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
+            # Embed the image in the description
             pnt.description = (
                 f"Orientation: {orientation}<br>"
-                f'<a href="{image_name}" target="_blank">View Image</a>'
+                f'<img src="{image_name}" alt="Image" width="400" />'
             )
             # Set the placemark to a blue dot
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
