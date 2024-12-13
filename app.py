@@ -2,9 +2,10 @@ import os
 import tempfile
 import zipfile
 import requests
-from PIL import Image, ExifTags
+from PIL import Image, ImageDraw, ImageFont, ExifTags
 import simplekml
 import streamlit as st
+
 
 def download_fan_image(fan_image_url, destination):
     """Download the fan image from GitHub and rotate it by -90 degrees."""
@@ -12,13 +13,14 @@ def download_fan_image(fan_image_url, destination):
     if response.status_code == 200:
         with open(destination, "wb") as f:
             f.write(response.content)
-
+        
         # Open the downloaded image and rotate it by -90 degrees
         with Image.open(destination) as img:
             rotated_img = img.rotate(-90, expand=True)
             rotated_img.save(destination)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
+
 
 def correct_image_orientation(image):
     """Correct image orientation based on Exif data."""
@@ -39,6 +41,7 @@ def correct_image_orientation(image):
         st.warning(f"Could not adjust image orientation: {e}")
     return image
 
+
 def convert_to_degrees(value):
     """Convert GPS coordinates to degrees."""
     try:
@@ -49,6 +52,7 @@ def convert_to_degrees(value):
     except Exception as e:
         st.warning(f"Error converting GPS value to degrees: {e}")
         return None
+
 
 def get_gps_metadata(image_path):
     """Extract GPS metadata from a JPEG/PNG image."""
@@ -79,6 +83,7 @@ def get_gps_metadata(image_path):
             return {
                 "latitude": lat,
                 "longitude": lon,
+                "elevation": gps_info.get("GPSAltitude", (0, 1))[0] / gps_info.get("GPSAltitude", (0, 1))[1],
                 "orientation": gps_info.get("GPSImgDirection", 0),
             }
         return None
@@ -86,10 +91,49 @@ def get_gps_metadata(image_path):
         st.error(f"Error extracting metadata from {image_path}: {e}")
         return None
 
+
+def annotate_image(image_path, metadata):
+    """
+    Annotate the image with easting, northing, elevation at the top,
+    and date/time at the bottom-left.
+    """
+    # Open the image
+    image = Image.open(image_path)
+    draw = ImageDraw.Draw(image)
+
+    # Set fonts (use default font if no TTF file is available)
+    try:
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        font = ImageFont.truetype(font_path, 24)
+    except IOError:
+        font = ImageFont.load_default()
+
+    # Extract metadata
+    easting = metadata.get("easting", "Unknown Easting")
+    northing = metadata.get("northing", "Unknown Northing")
+    elevation = metadata.get("elevation", "Unknown Elevation")
+    date_time = metadata.get("date_time", "Unknown Date/Time")
+
+    # Add text at the top (easting, northing, elevation)
+    top_text = f"E: {easting:.2f}, N: {northing:.2f}, Elev: {elevation:.2f} m"
+    draw.text((10, 10), top_text, fill="white", font=font)
+
+    # Add text at the bottom-left (date/time)
+    bottom_text = date_time
+    text_width, text_height = draw.textsize(bottom_text, font=font)
+    image_width, image_height = image.size
+    draw.text((10, image_height - text_height - 10), bottom_text, fill="white", font=font)
+
+    # Save the annotated image
+    annotated_image_path = image_path.replace(".jpg", "_annotated.jpg")
+    image.save(annotated_image_path)
+    return annotated_image_path
+
+
 def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     """Generate a KMZ file with fan overlays and placemarks."""
     kml = simplekml.Kml()
-    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
     kmz_images = []
     has_data = False
 
@@ -100,24 +144,30 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             has_data = True
             lat, lon = metadata["latitude"], metadata["longitude"]
             orientation = float(metadata["orientation"])
-            image_name = os.path.basename(image_path)
+            easting = lon * 111319.9  # Approximate conversion
+            northing = lat * 111319.9  # Approximate conversion
+            elevation = metadata.get("elevation", 0)  # Placeholder elevation
+            date_time = "14 Feb 2023, 10:41:30"  # Example timestamp, replace with actual if available
 
-            # Open image, correct orientation, and save corrected copy
-            image = Image.open(image_path)
-            corrected_image = correct_image_orientation(image)
-            corrected_image_path = os.path.join(folder_path, image_name)
-            corrected_image.save(corrected_image_path)
+            # Annotate the image with metadata
+            image_metadata = {
+                "easting": easting,
+                "northing": northing,
+                "elevation": elevation,
+                "date_time": date_time,
+            }
+            annotated_image_path = annotate_image(image_path, image_metadata)
 
             # Add a placemark
-            pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
+            pnt = kml.newpoint(name=image_metadata["date_time"], coords=[(lon, lat)])
             pnt.description = (
                 f"Orientation: {orientation}<br>"
-                f'<img src="{image_name}" alt="Image" width="800" />'
+                f'<img src="{os.path.basename(annotated_image_path)}" alt="Image" width="800" />'
             )
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
 
             # Add a ground overlay using the fan image
-            overlay_name = f"Overlay - {image_name}"
+            overlay_name = f"Overlay - {os.path.basename(image_path)}"
             ground_overlay = kml.newgroundoverlay(name=overlay_name)
             ground_overlay.icon.href = "Fan.png"  # Refer to the fan image
             ground_overlay.latlonbox.north = lat + 0.00005  # Adjust size to 5px
@@ -127,7 +177,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             ground_overlay.latlonbox.rotation = orientation - 90  # Align orientation to top of rotated Fan.png
 
             # Add images and fan overlay to KMZ package
-            kmz_images.append((image_name, corrected_image_path))
+            kmz_images.append((os.path.basename(annotated_image_path), annotated_image_path))
 
     if not has_data:
         raise ValueError("No valid GPS metadata found in the uploaded images.")
@@ -148,6 +198,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
         kmz.write(fan_image_dest, "Fan.png")
 
     os.remove(kml_file)  # Clean up temporary KML file
+
 
 # Streamlit App
 st.set_page_config(page_title="KMZ Generator", layout="wide")
@@ -190,6 +241,7 @@ if st.button("Generate KMZ"):
                             file_name=output_kmz_name,
                             mime="application/vnd.google-earth.kmz"
                         )
+                st.success("KMZ file generated successfully!")
             except ValueError as e:
                 st.error(str(e))
             except Exception as e:
