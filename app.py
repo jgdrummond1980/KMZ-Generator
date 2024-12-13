@@ -4,18 +4,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import simplekml
 import zipfile
-import pyheif
 import streamlit as st
-
-
-def convert_heic_to_jpg(heic_path, output_path):
-    """Convert HEIC to JPG using pyheif and save it."""
-    heif_file = pyheif.read(heic_path)
-    image = Image.frombytes(
-        heif_file.mode, heif_file.size, heif_file.data, "raw", heif_file.mode, heif_file.stride
-    )
-    image.save(output_path, "JPEG")
-    return output_path
 
 
 def get_gps_metadata(image_path):
@@ -60,16 +49,11 @@ def get_gps_metadata(image_path):
 def create_kmz(folder_path, output_kmz):
     """Generate KMZ file from geotagged images."""
     kml = simplekml.Kml()
-    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.heic'))]
+    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
     kmz_images = []
     has_data = False  # Flag to check if any images have GPS data
 
     for image_path in image_paths:
-        if image_path.lower().endswith(".heic"):
-            # Convert HEIC to JPG for processing
-            converted_path = image_path + ".jpg"
-            image_path = convert_heic_to_jpg(image_path, converted_path)
-
         metadata = get_gps_metadata(image_path)
         if metadata:
             has_data = True
@@ -105,9 +89,9 @@ def create_kmz(folder_path, output_kmz):
 st.title("Geotagged Photos to KMZ Converter")
 
 uploaded_files = st.file_uploader(
-    "Upload geotagged photos (JPG, PNG, HEIC):",
+    "Upload geotagged photos (JPG, PNG):",
     accept_multiple_files=True,
-    type=["jpg", "jpeg", "png", "heic"]
+    type=["jpg", "jpeg", "png"]
 )
 
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
