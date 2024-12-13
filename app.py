@@ -4,7 +4,18 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import simplekml
 import zipfile
+import pyheif
 import streamlit as st
+
+
+def convert_heic_to_jpg(heic_path, output_path):
+    """Convert HEIC to JPG using pyheif and save it."""
+    heif_file = pyheif.read(heic_path)
+    image = Image.frombytes(
+        heif_file.mode, heif_file.size, heif_file.data, "raw", heif_file.mode, heif_file.stride
+    )
+    image.save(output_path, "JPEG")
+    return output_path
 
 
 def get_gps_metadata(image_path):
@@ -49,12 +60,19 @@ def get_gps_metadata(image_path):
 def create_kmz(folder_path, output_kmz):
     """Generate KMZ file from geotagged images."""
     kml = simplekml.Kml()
-    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.heic'))]
     kmz_images = []
+    has_data = False  # Flag to check if any images have GPS data
 
     for image_path in image_paths:
+        if image_path.lower().endswith(".heic"):
+            # Convert HEIC to JPG for processing
+            converted_path = image_path + ".jpg"
+            image_path = convert_heic_to_jpg(image_path, converted_path)
+
         metadata = get_gps_metadata(image_path)
         if metadata:
+            has_data = True
             lat, lon = metadata["latitude"], metadata["longitude"]
             orientation = metadata.get("orientation", "Unknown")
             image_name = os.path.basename(image_path)
@@ -66,6 +84,9 @@ def create_kmz(folder_path, output_kmz):
 
             # Add image to KMZ package
             kmz_images.append((image_name, image_path))
+
+    if not has_data:
+        raise ValueError("No valid GPS metadata found in the uploaded images.")
 
     # Save KML file
     kml_file = os.path.join(folder_path, "doc.kml")
@@ -84,9 +105,9 @@ def create_kmz(folder_path, output_kmz):
 st.title("Geotagged Photos to KMZ Converter")
 
 uploaded_files = st.file_uploader(
-    "Upload geotagged photos (JPG, PNG):",
+    "Upload geotagged photos (JPG, PNG, HEIC):",
     accept_multiple_files=True,
-    type=["jpg", "jpeg", "png"]
+    type=["jpg", "jpeg", "png", "heic"]
 )
 
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
@@ -95,19 +116,24 @@ if st.button("Generate KMZ"):
     if not uploaded_files:
         st.error("Please upload at least one photo.")
     else:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for uploaded_file in uploaded_files:
-                file_path = os.path.join(tmp_dir, uploaded_file.name)
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.read())
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                for uploaded_file in uploaded_files:
+                    file_path = os.path.join(tmp_dir, uploaded_file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.read())
 
-            output_kmz_path = os.path.join(tmp_dir, output_kmz_name)
-            create_kmz(tmp_dir, output_kmz_path)
+                output_kmz_path = os.path.join(tmp_dir, output_kmz_name)
+                create_kmz(tmp_dir, output_kmz_path)
 
-            with open(output_kmz_path, "rb") as f:
-                st.download_button(
-                    label="Download KMZ",
-                    data=f,
-                    file_name=output_kmz_name,
-                    mime="application/vnd.google-earth.kmz"
-                )
+                with open(output_kmz_path, "rb") as f:
+                    st.download_button(
+                        label="Download KMZ",
+                        data=f,
+                        file_name=output_kmz_name,
+                        mime="application/vnd.google-earth.kmz"
+                    )
+        except ValueError as e:
+            st.error(str(e))
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
