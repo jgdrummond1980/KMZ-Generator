@@ -1,74 +1,60 @@
 import os
 import tempfile
-from simplekml import Kml
+from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
+import simplekml
+import zipfile
 import streamlit as st
-import subprocess
-import shutil
 
 
-def check_exiftool():
-    """Verify if ExifTool is installed and accessible."""
-    if not shutil.which("exiftool"):
-        st.error("ExifTool is not installed or cannot be found in the environment. Please check your deployment setup.")
-        return False
-    return True
-
-
-def extract_metadata_with_exiftool(file_path):
-    """Extract metadata (Exif or XMP) using ExifTool."""
-    if not check_exiftool():
-        return None
-    try:
-        result = subprocess.run(
-            ["exiftool", "-gpslatitude", "-gpslongitude", "-gpsimgdirection", file_path],
-            stdout=subprocess.PIPE,
-            text=True,
-            check=True,
-        )
-        metadata = result.stdout.strip().splitlines()
-        gps_data = {}
-        for line in metadata:
-            key, value = line.split(":", 1)
-            key = key.strip().lower().replace(" ", "_")
-            value = value.strip()
-            gps_data[key] = value
-
-        if "gps_latitude" in gps_data and "gps_longitude" in gps_data:
-            return {
-                "latitude": convert_to_decimal(gps_data["gps_latitude"]),
-                "longitude": convert_to_decimal(gps_data["gps_longitude"]),
-                "orientation": gps_data.get("gps_img_direction", "Unknown"),
-            }
-        return None
-    except FileNotFoundError:
-        st.error("ExifTool is not installed or cannot be found in the environment.")
-        return None
-    except Exception as e:
-        st.error(f"Metadata extraction failed: {e}")
+def get_gps_metadata(image_path):
+    """Extract GPS metadata from an image."""
+    image = Image.open(image_path)
+    exif_data = image._getexif()
+    if not exif_data:
         return None
 
+    gps_info = {}
+    for tag, value in exif_data.items():
+        tag_name = TAGS.get(tag, tag)
+        if tag_name == "GPSInfo":
+            for t, val in value.items():
+                gps_tag = GPSTAGS.get(t, t)
+                gps_info[gps_tag] = val
 
-def convert_to_decimal(coord):
-    """Convert GPS coordinates from DMS to decimal format."""
-    parts = coord.split()
-    degrees = float(parts[0].replace("°", ""))
-    minutes = float(parts[1].replace("'", ""))
-    seconds = float(parts[2].replace('"', "")) if len(parts) > 2 else 0
-    direction = parts[-1]
-    decimal = degrees + (minutes / 60) + (seconds / 3600)
-    if direction in ["S", "W"]:
-        decimal = -decimal
-    return decimal
+    if not gps_info:
+        return None
+
+    def convert_to_degrees(value):
+        d = value[0][0] / value[0][1]
+        m = value[1][0] / value[1][1]
+        s = value[2][0] / value[2][1]
+        return d + (m / 60.0) + (s / 3600.0)
+
+    if "GPSLatitude" in gps_info and "GPSLongitude" in gps_info:
+        lat = convert_to_degrees(gps_info["GPSLatitude"])
+        lon = convert_to_degrees(gps_info["GPSLongitude"])
+        if gps_info["GPSLatitudeRef"] == "S":
+            lat = -lat
+        if gps_info["GPSLongitudeRef"] == "W":
+            lon = -lon
+        return {
+            "latitude": lat,
+            "longitude": lon,
+            "orientation": gps_info.get("GPSImgDirection", None),
+        }
+    return None
 
 
 def create_kmz(folder_path, output_kmz):
-    """Generate a KMZ file from geotagged images."""
-    kml = Kml()
-    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path)]
-    has_data = False
+    """Generate KMZ file from geotagged images."""
+    kml = simplekml.Kml()
+    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    kmz_images = []
+    has_data = False  # Flag to check if any images have GPS data
 
     for image_path in image_paths:
-        metadata = extract_metadata_with_exiftool(image_path)
+        metadata = get_gps_metadata(image_path)
         if metadata:
             has_data = True
             lat, lon = metadata["latitude"], metadata["longitude"]
@@ -78,26 +64,34 @@ def create_kmz(folder_path, output_kmz):
             # Create a placemark
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
             pnt.description = f"Orientation: {orientation}"
-            pnt.style.iconstyle.icon.href = image_name
+            pnt.style.iconstyle.icon.href = image_name  # Link to the image in KMZ
 
-            # Add the image to KMZ
-            kml.addfile(image_path)
+            # Add image to KMZ package
+            kmz_images.append((image_name, image_path))
 
     if not has_data:
         raise ValueError("No valid GPS metadata found in the uploaded images.")
 
-    # Save KMZ
-    kml.savekmz(output_kmz)
+    # Save KML file
+    kml_file = os.path.join(folder_path, "doc.kml")
+    kml.save(kml_file)
+
+    # Create KMZ file
+    with zipfile.ZipFile(output_kmz, 'w') as kmz:
+        kmz.write(kml_file, "doc.kml")
+        for img_name, img_path in kmz_images:
+            kmz.write(img_path, img_name)
+
+    os.remove(kml_file)  # Clean up temporary KML file
 
 
 # Streamlit App
-st.set_page_config(page_title="KMZ Generator", layout="wide")
-st.title("HEIC, Exif, and XMP to KMZ Converter")
+st.title("Geotagged Photos to KMZ Converter")
 
 uploaded_files = st.file_uploader(
-    "Upload images (HEIC, JPG, PNG):",
+    "Upload geotagged photos (JPG, PNG):",
     accept_multiple_files=True,
-    type=["heic", "jpg", "jpeg", "png"]
+    type=["jpg", "jpeg", "png"]
 )
 
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
