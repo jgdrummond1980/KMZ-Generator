@@ -159,15 +159,13 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
 
-# GitHub-hosted Fan.png URL
-fan_image_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Fan.png"
-output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
-
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
     accept_multiple_files=True,
     type=["jpg", "jpeg", "png"]
 )
+
+output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
 
 if st.button("Generate KMZ"):
     if not uploaded_files:
