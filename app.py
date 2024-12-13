@@ -99,11 +99,10 @@ def create_kmz(folder_path, output_kmz):
 
             # Create a placemark
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
-            # Embed the image in the description with a download link
+            # Embed the image in the description without a download link
             pnt.description = (
                 f"Orientation: {orientation}<br>"
-                f'<img src="{image_name}" alt="Image" width="800" /><br>'
-                f'<a href="{image_name}" target="_blank">Download Image</a>'
+                f'<img src="{image_name}" alt="Image" width="800" />'
             )
             # Set the placemark to a blue dot
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
