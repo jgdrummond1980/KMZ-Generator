@@ -50,7 +50,7 @@ def convert_to_degrees(value):
         return None
 
 def get_gps_metadata(image_path):
-    """Extract GPS metadata from a JPEG/PNG image."""
+    """Extract GPS metadata and creation date from a JPEG/PNG image."""
     try:
         image = Image.open(image_path)
         exif_data = image._getexif()
@@ -58,12 +58,15 @@ def get_gps_metadata(image_path):
             return None
 
         gps_info = {}
+        creation_date = None
         for tag, value in exif_data.items():
             tag_name = ExifTags.TAGS.get(tag, tag)
             if tag_name == "GPSInfo":
                 for t, val in value.items():
                     gps_tag = ExifTags.GPSTAGS.get(t, t)
                     gps_info[gps_tag] = val
+            elif tag_name == "DateTimeOriginal":
+                creation_date = value
 
         if not gps_info:
             return None
@@ -84,6 +87,7 @@ def get_gps_metadata(image_path):
                 "longitude": lon,
                 "altitude": alt,
                 "orientation": gps_info.get("GPSImgDirection", 0),
+                "date_created": creation_date
             }
         return None
     except Exception as e:
@@ -103,6 +107,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             has_data = True
             lat, lon, alt = metadata["latitude"], metadata["longitude"], metadata["altitude"]
             orientation = float(metadata["orientation"])
+            date_created = metadata.get("date_created", "Unknown Date")
             image_name = os.path.basename(image_path)
 
             image = Image.open(image_path)
@@ -124,6 +129,9 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             </div>
             <div>
                 <img src="{image_name}" alt="Image" width="800" />
+            </div>
+            <div style="text-align: center; font-size: 12px; font-weight: normal; margin-top: 10px;">
+                Date Created: {date_created}
             </div>
             """
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
