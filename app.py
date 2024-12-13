@@ -114,7 +114,7 @@ def annotate_image(image_path, metadata):
     # Set fonts (use default font if no TTF file is available)
     try:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        font = ImageFont.truetype(font_path, 24)
+        font = ImageFont.truetype(font_path, 32)  # Increased font size for better readability
     except IOError:
         font = ImageFont.load_default()
 
@@ -130,7 +130,8 @@ def annotate_image(image_path, metadata):
 
     # Add text at the bottom-left (date/time)
     bottom_text = date_time
-    text_width, text_height = draw.textbbox((0, 0), bottom_text, font=font)[2:]
+    text_bbox = draw.textbbox((0, 0), bottom_text, font=font)
+    text_width, text_height = text_bbox[2], text_bbox[3]
     image_width, image_height = image.size
     draw.text((10, image_height - text_height - 10), bottom_text, fill="white", font=font)
 
@@ -169,7 +170,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             annotated_image_path = annotate_image(image_path, image_metadata)
 
             # Add a placemark
-            pnt = kml.newpoint(name=image_metadata["date_time"], coords=[(lon, lat)])
+            pnt = kml.newpoint(name=os.path.basename(image_path), coords=[(lon, lat)])
             pnt.description = (
                 f"Orientation: {orientation}<br>"
                 f'<img src="{os.path.basename(annotated_image_path)}" alt="Image" width="800" />'
