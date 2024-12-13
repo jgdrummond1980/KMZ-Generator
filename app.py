@@ -75,10 +75,11 @@ def get_gps_metadata(image_path):
         return None
 
 
-def create_kmz_with_overlays(folder_path, output_kmz):
-    """Generate a KMZ file with ground overlays for each geotagged image."""
+def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
+    """Generate a KMZ file with fan overlays and placemarks."""
     kml = simplekml.Kml()
     image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    kmz_images = []
     has_data = False
 
     for image_path in image_paths:
@@ -90,23 +91,40 @@ def create_kmz_with_overlays(folder_path, output_kmz):
             orientation = float(metadata["orientation"])
             image_name = os.path.basename(image_path)
 
-            # Add the ground overlay
-            ground_overlay = kml.newgroundoverlay(name=image_name)
-            ground_overlay.icon.href = image_name
-            ground_overlay.latlonbox.north = lat + 0.0005  # Adjust scale
-            ground_overlay.latlonbox.south = lat - 0.0005
-            ground_overlay.latlonbox.east = lon + 0.0005
-            ground_overlay.latlonbox.west = lon - 0.0005
-            ground_overlay.latlonbox.rotation = orientation  # Rotate the overlay
-
-            # Add the image to the KMZ package
+            # Open image, correct orientation, and save corrected copy
             image = Image.open(image_path)
             corrected_image = correct_image_orientation(image)
             corrected_image_path = os.path.join(folder_path, image_name)
             corrected_image.save(corrected_image_path)
 
+            # Add a placemark
+            pnt = kml.newpoint(name=image_name, coords=[(lon, lat)])
+            pnt.description = (
+                f"Orientation: {orientation}<br>"
+                f'<img src="{image_name}" alt="Image" width="800" />'
+            )
+            pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
+
+            # Add a ground overlay using the fan image
+            overlay_name = f"Overlay - {image_name}"
+            ground_overlay = kml.newgroundoverlay(name=overlay_name)
+            ground_overlay.icon.href = "Fan.png"  # Refer to the fan image
+            ground_overlay.latlonbox.north = lat + 0.0003  # Adjust size to 30 px
+            ground_overlay.latlonbox.south = lat - 0.0003
+            ground_overlay.latlonbox.east = lon + 0.0003
+            ground_overlay.latlonbox.west = lon - 0.0003
+            ground_overlay.latlonbox.rotation = orientation
+
+            # Add images and fan overlay to KMZ package
+            kmz_images.append((image_name, corrected_image_path))
+
     if not has_data:
         raise ValueError("No valid GPS metadata found in the uploaded images.")
+
+    # Save the fan image to the temporary folder
+    fan_image_dest = os.path.join(folder_path, "Fan.png")
+    with open(fan_image_dest, "wb") as f:
+        f.write(open(fan_image_path, "rb").read())
 
     # Save KML file
     kml_file = os.path.join(folder_path, "doc.kml")
@@ -115,16 +133,16 @@ def create_kmz_with_overlays(folder_path, output_kmz):
     # Create KMZ file
     with zipfile.ZipFile(output_kmz, 'w') as kmz:
         kmz.write(kml_file, "doc.kml")
-        for f in os.listdir(folder_path):
-            if f.lower().endswith(('.jpg', '.jpeg', '.png')):
-                kmz.write(os.path.join(folder_path, f), f)
+        for img_name, img_path in kmz_images:
+            kmz.write(img_path, img_name)
+        kmz.write(fan_image_dest, "Fan.png")
 
     os.remove(kml_file)  # Clean up temporary KML file
 
 
 # Streamlit App
-st.set_page_config(page_title="KMZ Generator with Overlays", layout="wide")
-st.title("JPEG/PNG to KMZ Converter with Image Overlays")
+st.set_page_config(page_title="KMZ Generator with Fan Overlay", layout="wide")
+st.title("JPEG/PNG to KMZ Converter with Fan Overlays")
 
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
@@ -132,9 +150,10 @@ uploaded_files = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
+fan_image_path = "/mnt/data/Fan.png"  # Path to the fan overlay image
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
 
-if st.button("Generate KMZ with Overlays"):
+if st.button("Generate KMZ with Fan Overlays"):
     if not uploaded_files:
         st.error("Please upload at least one photo.")
     else:
@@ -146,11 +165,11 @@ if st.button("Generate KMZ with Overlays"):
                         f.write(uploaded_file.read())
 
                 output_kmz_path = os.path.join(tmp_dir, output_kmz_name)
-                create_kmz_with_overlays(tmp_dir, output_kmz_path)
+                create_kmz_with_fan_overlay(tmp_dir, output_kmz_path, fan_image_path)
 
                 with open(output_kmz_path, "rb") as f:
                     st.download_button(
-                        label="Download KMZ with Overlays",
+                        label="Download KMZ with Fan Overlays",
                         data=f,
                         file_name=output_kmz_name,
                         mime="application/vnd.google-earth.kmz"
