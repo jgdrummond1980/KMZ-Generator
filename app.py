@@ -93,10 +93,10 @@ def get_gps_metadata(image_path):
             date_time = exif_data.get(36867, "Unknown Date/Time")
 
             return {
-                "latitude": round(lat, 3),
-                "longitude": round(lon, 3),
-                "elevation": round(elevation, 3),
-                "orientation": round(orientation, 3),
+                "latitude": round(lat, 6),
+                "longitude": round(lon, 6),
+                "elevation": round(elevation, 2),
+                "orientation": round(orientation, 1),
                 "date_time": date_time,
             }
         return None
@@ -177,10 +177,10 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             overlay_name = f"Overlay - {os.path.basename(image_path)}"
             ground_overlay = kml.newgroundoverlay(name=overlay_name)
             ground_overlay.icon.href = "Fan.png"  # Refer to the fan image
-            ground_overlay.latlonbox.north = lat + 0.00005  # Adjust size to 5px
-            ground_overlay.latlonbox.south = lat - 0.00005
-            ground_overlay.latlonbox.east = lon + 0.00005
-            ground_overlay.latlonbox.west = lon - 0.00005
+            ground_overlay.latlonbox.north = lat + 0.0001  # Adjust size to 5px
+            ground_overlay.latlonbox.south = lat - 0.0001
+            ground_overlay.latlonbox.east = lon + 0.0001
+            ground_overlay.latlonbox.west = lon - 0.0001
             ground_overlay.latlonbox.rotation = orientation - 90  # Align orientation to top of rotated Fan.png
 
             # Add images and fan overlay to KMZ package
