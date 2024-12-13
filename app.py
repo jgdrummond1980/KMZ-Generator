@@ -4,7 +4,60 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import simplekml
 import zipfile
+import pyheif
 import streamlit as st
+
+
+def extract_gps_from_heic(heic_path):
+    """Extract GPS metadata directly from HEIC file."""
+    heif_file = pyheif.read(heic_path)
+    metadata = heif_file.metadata or []
+    gps_info = {}
+
+    for item in metadata:
+        if item['type'] == 'Exif':
+            exif_data = Image.frombytes(
+                heif_file.mode, heif_file.size, heif_file.data, "raw", heif_file.mode, heif_file.stride
+            )._getexif()
+            if exif_data:
+                for tag, value in exif_data.items():
+                    tag_name = TAGS.get(tag, tag)
+                    if tag_name == "GPSInfo":
+                        for t, val in value.items():
+                            gps_tag = GPSTAGS.get(t, t)
+                            gps_info[gps_tag] = val
+    if not gps_info:
+        return None
+
+    def convert_to_degrees(value):
+        d = value[0][0] / value[0][1]
+        m = value[1][0] / value[1][1]
+        s = value[2][0] / value[2][1]
+        return d + (m / 60.0) + (s / 3600.0)
+
+    if "GPSLatitude" in gps_info and "GPSLongitude" in gps_info:
+        lat = convert_to_degrees(gps_info["GPSLatitude"])
+        lon = convert_to_degrees(gps_info["GPSLongitude"])
+        if gps_info["GPSLatitudeRef"] == "S":
+            lat = -lat
+        if gps_info["GPSLongitudeRef"] == "W":
+            lon = -lon
+        return {
+            "latitude": lat,
+            "longitude": lon,
+            "orientation": gps_info.get("GPSImgDirection", None),
+        }
+    return None
+
+
+def convert_heic_to_jpg(heic_path, output_path):
+    """Convert HEIC to JPG using pyheif."""
+    heif_file = pyheif.read(heic_path)
+    image = Image.frombytes(
+        heif_file.mode, heif_file.size, heif_file.data, "raw", heif_file.mode, heif_file.stride
+    )
+    image.save(output_path, "JPEG")
+    return output_path
 
 
 def get_gps_metadata(image_path):
@@ -49,12 +102,21 @@ def get_gps_metadata(image_path):
 def create_kmz(folder_path, output_kmz):
     """Generate KMZ file from geotagged images."""
     kml = simplekml.Kml()
-    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    image_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.heic'))]
     kmz_images = []
     has_data = False  # Flag to check if any images have GPS data
 
     for image_path in image_paths:
-        metadata = get_gps_metadata(image_path)
+        metadata = None
+        if image_path.lower().endswith(".heic"):
+            # Extract GPS metadata from HEIC
+            metadata = extract_gps_from_heic(image_path)
+            # Convert HEIC to JPG for further processing
+            converted_path = image_path + ".jpg"
+            image_path = convert_heic_to_jpg(image_path, converted_path)
+        else:
+            metadata = get_gps_metadata(image_path)
+
         if metadata:
             has_data = True
             lat, lon = metadata["latitude"], metadata["longitude"]
@@ -89,9 +151,9 @@ def create_kmz(folder_path, output_kmz):
 st.title("Geotagged Photos to KMZ Converter")
 
 uploaded_files = st.file_uploader(
-    "Upload geotagged photos (JPG, PNG):",
+    "Upload geotagged photos (JPG, PNG, HEIC):",
     accept_multiple_files=True,
-    type=["jpg", "jpeg", "png"]
+    type=["jpg", "jpeg", "png", "heic"]
 )
 
 output_kmz_name = st.text_input("Enter output KMZ file name:", "output.kmz")
