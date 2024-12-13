@@ -1,5 +1,6 @@
 import os
 import tempfile
+import zipfile  # Added import for zipfile
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import simplekml
