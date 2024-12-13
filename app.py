@@ -75,7 +75,7 @@ def create_kmz(folder_path, output_kmz):
             # Embed the image in the description with a larger size and a download link
             pnt.description = (
                 f"Orientation: {orientation}<br>"
-                f'<img src="{image_name}" alt="Image" width="600" /><br>'
+                f'<img src="{image_name}" alt="Image" width="800" /><br>'
                 f'<a href="{image_name}" download="{image_name}">Download Image</a>'
             )
             # Set the placemark to a blue dot
