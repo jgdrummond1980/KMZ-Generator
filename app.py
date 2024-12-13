@@ -130,7 +130,7 @@ def annotate_image(image_path, metadata):
 
     # Add text at the bottom-left (date/time)
     bottom_text = date_time
-    text_width, text_height = draw.textsize(bottom_text, font=font)
+    text_width, text_height = draw.textbbox((0, 0), bottom_text, font=font)[2:]
     image_width, image_height = image.size
     draw.text((10, image_height - text_height - 10), bottom_text, fill="white", font=font)
 
