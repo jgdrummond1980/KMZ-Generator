@@ -125,10 +125,10 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             overlay_name = f"Overlay - {image_name}"
             ground_overlay = kml.newgroundoverlay(name=overlay_name)
             ground_overlay.icon.href = "Fan.png"  # Refer to the fan image
-            ground_overlay.latlonbox.north = lat + 0.0001  # Adjust size to 10px
-            ground_overlay.latlonbox.south = lat - 0.0001
-            ground_overlay.latlonbox.east = lon + 0.0001
-            ground_overlay.latlonbox.west = lon - 0.0001
+            ground_overlay.latlonbox.north = lat + 0.00005  # Adjust size to 5px
+            ground_overlay.latlonbox.south = lat - 0.00005
+            ground_overlay.latlonbox.east = lon + 0.00005
+            ground_overlay.latlonbox.west = lon - 0.00005
             ground_overlay.latlonbox.rotation = orientation - 90  # Align orientation to top of rotated Fan.png
 
             # Add images and fan overlay to KMZ package
@@ -196,6 +196,9 @@ if st.button("Generate KMZ"):
                             file_name=output_kmz_name,
                             mime="application/vnd.google-earth.kmz"
                         )
+                
+                # Reset the page after download
+                st.experimental_rerun()
             except ValueError as e:
                 st.error(str(e))
             except Exception as e:
