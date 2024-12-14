@@ -212,6 +212,24 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     os.remove(kml_file)
 
 
+# Sidebar configuration
+sidebar_css = """
+<style>
+    [data-testid="stSidebar"] {
+        background-color: #f0f0f0; /* Light grey */
+    }
+</style>
+"""
+st.markdown(sidebar_css, unsafe_allow_html=True)
+
+with st.sidebar:
+    st.image(
+        "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construction_solutions.png",
+        use_column_width=True,
+    )
+    st.markdown("### KMZ Generator App")
+    st.write("This app converts geotagged JPEG/PNG images into KMZ files with fan overlays.")
+
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
 
