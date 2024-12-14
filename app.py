@@ -134,17 +134,56 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             # Create a placemark description with metadata
             placemark_description = f"""
             <html>
+            <head>
+                <title></title>
+                <style>
+                    table {{
+                        width: 100%;
+                        text-align: center;
+                        border-collapse: collapse;
+                    }}
+                    th, td {{
+                        border: 1px solid black;
+                        padding: 5px;
+                    }}
+                    th {{
+                        background-color: grey;
+                        color: white;
+                    }}
+                </style>
+            </head>
             <body>
+                <h1>
+                    <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/CROSS_logo.png" alt="Logo" style="height: 50px;">
+                </h1>
                 <table>
-                    <tr><th>Date Created</th><td>{date_created}</td></tr>
-                    <tr><th>Altitude</th><td>{alt:.1f} Meters</td></tr>
-                    <tr><th>Orientation</th><td>{orientation:.1f}°</td></tr>
-                    <tr><th>Latitude</th><td>{lat:.6f}</td></tr>
-                    <tr><th>Longitude</th><td>{lon:.6f}</td></tr>
+                    <thead>
+                        <tr>
+                            <th>DATE CREATED</th>
+                            <th>ALTITUDE</th>
+                            <th>ORIENTATION</th>
+                            <th>LATITUDE</th>
+                            <th>LONGITUDE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{date_created}</td>
+                            <td>{alt:.1f} Meters</td>
+                            <td>{orientation:.1f}°</td>
+                            <td>{lat:.6f}</td>
+                            <td>{lon:.6f}</td>
+                        </tr>
+                    </tbody>
                 </table>
+                <div>
+                    <img src="{image_name}" alt="Image" width="800" />
+                </div>
             </body>
             </html>
             """
+
+            # Add placemark to KML
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat, alt)])
             pnt.description = placemark_description
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
@@ -174,22 +213,8 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
 
 st.set_page_config(page_title="KMZ Generator", layout="wide")
-
-# Add the logo above the title and center it with a fixed height of 200px
-logo_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions.png"
-st.markdown(
-    f"""
-    <div style="text-align: center;">
-        <img src="{logo_url}" alt="Logo" style="height: 200px; margin-bottom: 20px;" />
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Title of the app
 st.title("JPEG/PNG to KMZ Converter")
 
-# Upload section
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
     accept_multiple_files=True,
