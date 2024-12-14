@@ -135,9 +135,6 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             placemark_description = f"""
             <html>
             <body>
-                <h1>
-                    <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/CROSS_logo.png" alt="Logo" style="height: 50px;">
-                </h1>
                 <table>
                     <tr><th>Date Created</th><td>{date_created}</td></tr>
                     <tr><th>Altitude</th><td>{alt:.1f} Meters</td></tr>
@@ -179,9 +176,11 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
 
-# Add the logo to the sidebar
+# Add the logo to the top-right corner using columns
 logo_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions.png"
-st.sidebar.image(logo_url, use_column_width=True)
+col1, col2 = st.columns([8, 2])  # Adjust column proportions for layout
+with col2:
+    st.image(logo_url, use_container_width=True)
 
 # Upload section
 uploaded_files = st.file_uploader(
