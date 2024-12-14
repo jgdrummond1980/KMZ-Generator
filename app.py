@@ -14,7 +14,7 @@ def download_fan_image(fan_image_url, destination):
     if response.status_code == 200:
         with open(destination, "wb") as f:
             f.write(response.content)
-        
+
         with Image.open(destination) as img:
             rotated_img = img.rotate(-90, expand=True)
             rotated_img.save(destination)
@@ -187,7 +187,9 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             ground_overlay.latlonbox.south = lat - 0.00005
             ground_overlay.latlonbox.east = lon + 0.00005
             ground_overlay.latlonbox.west = lon - 0.00005
-            ground_overlay.latlonbox.rotation = orientation - 90
+
+            # Ensure proper rotation for Fan.png based on GPSImgDirection
+            ground_overlay.latlonbox.rotation = (orientation + 90) % 360 if orientation else 0
 
             kmz_images.append((image_name, corrected_image_path))
 
