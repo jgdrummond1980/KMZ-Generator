@@ -207,17 +207,16 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     os.remove(kml_file)
 
 st.set_page_config(page_title="KMZ Generator", layout="wide")
-st.title("JPEG/PNG to KMZ Converter")
-
-# Add Construct Solutions logo centered at the top of the page
 st.markdown(
     """
-    <div style="text-align: center; position: absolute; top: 0; width: 100%;">
-        <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions_logo.png" alt="Construct Solutions Logo" style="width: auto; height: 100px;">
+    <div style="text-align: center; margin-top: 20px;">
+        <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions_logo.png" alt="Construct Solutions Logo" style="height: 100px;">
     </div>
     """,
     unsafe_allow_html=True
 )
+
+st.title("JPEG/PNG to KMZ Converter")
 
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
