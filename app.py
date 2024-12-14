@@ -175,12 +175,12 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 
-# Add the logo above the title and center it
+# Add the logo above the title and center it with a fixed height of 200px
 logo_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions.png"
 st.markdown(
     f"""
     <div style="text-align: center;">
-        <img src="{logo_url}" alt="Logo" style="width: 50%; margin-bottom: 20px;" />
+        <img src="{logo_url}" alt="Logo" style="height: 200px; margin-bottom: 20px;" />
     </div>
     """,
     unsafe_allow_html=True
