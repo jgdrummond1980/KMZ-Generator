@@ -174,13 +174,20 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
 
 st.set_page_config(page_title="KMZ Generator", layout="wide")
-st.title("JPEG/PNG to KMZ Converter")
 
-# Add the logo to the top-right corner using columns
+# Add the logo above the title and center it
 logo_url = "https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions.png"
-col1, col2 = st.columns([8, 2])  # Adjust column proportions for layout
-with col2:
-    st.image(logo_url, use_container_width=True)
+st.markdown(
+    f"""
+    <div style="text-align: center;">
+        <img src="{logo_url}" alt="Logo" style="width: 50%; margin-bottom: 20px;" />
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Title of the app
+st.title("JPEG/PNG to KMZ Converter")
 
 # Upload section
 uploaded_files = st.file_uploader(
