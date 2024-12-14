@@ -7,7 +7,6 @@ import simplekml
 import streamlit as st
 from datetime import datetime
 
-
 def download_fan_image(fan_image_url, destination):
     """Download the fan image from GitHub and save it without altering its orientation."""
     response = requests.get(fan_image_url, stream=True)
@@ -16,7 +15,6 @@ def download_fan_image(fan_image_url, destination):
             f.write(response.content)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
-
 
 def correct_image_orientation(image):
     """Correct image orientation based on Exif data."""
@@ -37,7 +35,6 @@ def correct_image_orientation(image):
         st.warning(f"Could not adjust image orientation: {e}")
     return image
 
-
 def convert_to_degrees(value):
     """Convert GPS coordinates to degrees."""
     try:
@@ -48,7 +45,6 @@ def convert_to_degrees(value):
     except Exception as e:
         st.warning(f"Error converting GPS value to degrees: {e}")
         return None
-
 
 def get_gps_metadata(image_path):
     """Extract GPS metadata from a JPEG/PNG image."""
@@ -91,7 +87,6 @@ def get_gps_metadata(image_path):
     except Exception as e:
         st.error(f"Error extracting metadata from {image_path}: {e}")
         return None
-
 
 def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     """Generate a KMZ file with fan overlays and placemarks."""
@@ -211,9 +206,18 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
     os.remove(kml_file)
 
-
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
+
+# Add Construct Solutions logo centered at the top of the page
+st.markdown(
+    """
+    <div style="text-align: center; position: absolute; top: 0; width: 100%;">
+        <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions_logo.png" alt="Construct Solutions Logo" style="width: auto; height: 100px;">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 uploaded_files = st.file_uploader(
     "Upload geotagged photos (JPG, JPEG, PNG):",
