@@ -6,18 +6,14 @@ from PIL import Image, ExifTags
 import simplekml
 import streamlit as st
 
-def download_fan_image(fan_image_url, destination):
-    """Download the fan image from GitHub and rotate it by -90 degrees."""
-    response = requests.get(fan_image_url, stream=True)
+def download_image(url, destination):
+    """Download an image from a URL."""
+    response = requests.get(url, stream=True)
     if response.status_code == 200:
         with open(destination, "wb") as f:
             f.write(response.content)
-        
-        with Image.open(destination) as img:
-            rotated_img = img.rotate(-90, expand=True)
-            rotated_img.save(destination)
     else:
-        raise ValueError(f"Failed to download fan image from {fan_image_url}")
+        raise ValueError(f"Failed to download image from {url}")
 
 def correct_image_orientation(image):
     """Correct image orientation based on Exif data."""
@@ -115,35 +111,65 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             corrected_image_path = os.path.join(folder_path, image_name)
             corrected_image.save(corrected_image_path)
 
-            # Add a placemark with altitude and absolute altitude mode
+            # Add a placemark with a table in the description
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat, alt)])
             pnt.description = f"""
-            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
-                <div style="text-align: left;">
-                    Altitude: {alt:.1f} meters, Orientation: {orientation:.1f}°
+            <html>
+            <head>
+                <title>Metadata Table</title>
+                <style>
+                    h1 {{
+                        text-align: center;
+                    }}
+                    table {{
+                        width: 100%;
+                        text-align: center;
+                        border-collapse: collapse;
+                        margin-top: 10px;
+                    }}
+                    th, td {{
+                        border: 1px solid black;
+                        padding: 5px;
+                    }}
+                    th {{
+                        background-color: grey;
+                        color: white;
+                    }}
+                </style>
+            </head>
+            <body>
+                <h1>
+                    <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/CROSS_logo.png" 
+                         alt="Logo" style="float: right; height: 50px;">
+                </h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>DATE CREATED</th>
+                            <th>ALTITUDE</th>
+                            <th>ORIENTATION</th>
+                            <th>LATITUDE</th>
+                            <th>LONGITUDE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{date_created}</td>
+                            <td>{alt:.1f} Meters</td>
+                            <td>{orientation:.1f}°</td>
+                            <td>{lat:.6f}</td>
+                            <td>{lon:.6f}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 20px;">
+                    <img src="{image_name}" alt="Image" width="800" />
                 </div>
-                <div style="text-align: right;">
-                    Latitude: {lat:.6f}<br>
-                    Longitude: {lon:.6f}
-                </div>
-            </div>
-            <div>
-                <img src="{image_name}" alt="Image" width="800" />
-            </div>
-            <div style="text-align: center; font-size: 12px; font-weight: normal; margin-top: 10px;">
-                Date Created: {date_created}
-            </div>
+            </body>
+            </html>
             """
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
             pnt.altitudemode = simplekml.AltitudeMode.absolute
-
-            ground_overlay = kml.newgroundoverlay(name=f"Overlay - {image_name}")
-            ground_overlay.icon.href = "Fan.png"
-            ground_overlay.latlonbox.north = lat + 0.00005
-            ground_overlay.latlonbox.south = lat - 0.00005
-            ground_overlay.latlonbox.east = lon + 0.00005
-            ground_overlay.latlonbox.west = lon - 0.00005
-            ground_overlay.latlonbox.rotation = orientation - 90
 
             kmz_images.append((image_name, corrected_image_path))
 
@@ -184,7 +210,7 @@ if st.button("Generate KMZ"):
             try:
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     fan_image_path = os.path.join(tmp_dir, "Fan.png")
-                    download_fan_image(fan_image_url, fan_image_path)
+                    download_image(fan_image_url, fan_image_path)
 
                     for uploaded_file in uploaded_files:
                         file_path = os.path.join(tmp_dir, uploaded_file.name)
