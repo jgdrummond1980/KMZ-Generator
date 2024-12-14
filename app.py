@@ -16,8 +16,7 @@ def download_fan_image(fan_image_url, destination):
             f.write(response.content)
 
         with Image.open(destination) as img:
-            rotated_img = img.rotate(-90, expand=True)
-            rotated_img.save(destination)
+            img.save(destination)  # Ensure the image is saved as is, no rotation
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
 
@@ -133,7 +132,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             ground_overlay.latlonbox.south = south
             ground_overlay.latlonbox.east = east
             ground_overlay.latlonbox.west = west
-            ground_overlay.latlonbox.rotation = (orientation - 90) % 360  # Align top-center of Fan.png
+            ground_overlay.latlonbox.rotation = orientation  # Align top-center of Fan.png to the correct orientation
 
             # Create a placemark description with metadata
             placemark_description = f"""
