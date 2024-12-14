@@ -112,11 +112,17 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 
             # Add a placemark with altitude and absolute altitude mode
             pnt = kml.newpoint(name=image_name, coords=[(lon, lat, alt)])
-            pnt.description = (
-                f"Altitude: {alt:.1f} meters<br>"
-                f"Orientation: {orientation:.1f}°<br>"
-                f'<img src="{image_name}" alt="Image" width="800" />'
-            )
+            pnt.description = f"""
+            <div style="text-align: right; font-size: 14px; font-weight: bold;">
+                Altitude: {alt:.1f} meters<br>
+                Orientation: {orientation:.1f}°<br>
+                Latitude: {lat:.6f}<br>
+                Longitude: {lon:.6f}
+            </div>
+            <div>
+                <img src="{image_name}" alt="Image" width="800" />
+            </div>
+            """
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
             pnt.altitudemode = simplekml.AltitudeMode.absolute
 
