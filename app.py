@@ -209,7 +209,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.markdown(
     """
-    <div style="text-align: center; margin-top: 20px;">
+    <div style="text-align: left; margin-top: 5px;">
         <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/Construct_solutions_logo.png" alt="Construct Solutions Logo" style="height: 100px;">
     </div>
     """,
