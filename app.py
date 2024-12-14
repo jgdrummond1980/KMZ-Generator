@@ -16,7 +16,7 @@ def download_fan_image(fan_image_url, destination):
             f.write(response.content)
 
         with Image.open(destination) as img:
-            rotated_img = img.rotate(-90, expand=True)
+            rotated_img = img.rotate(-180, expand=True)
             rotated_img.save(destination)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
