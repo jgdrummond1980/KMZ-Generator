@@ -119,15 +119,28 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             corrected_image_path = os.path.join(folder_path, image_name)
             corrected_image.save(corrected_image_path)
 
-            # Create placemark description with HTML
+            # Define overlay dimensions
+            overlay_size = 0.0001  # Adjust this to control the overlay size
+            north = lat + overlay_size / 2
+            south = lat - overlay_size / 2
+            east = lon + overlay_size / 2
+            west = lon - overlay_size / 2
+
+            # Add a GroundOverlay for Fan.png
+            ground_overlay = kml.newgroundoverlay(name=f"Overlay - {image_name}")
+            ground_overlay.icon.href = "Fan.png"
+            ground_overlay.latlonbox.north = north
+            ground_overlay.latlonbox.south = south
+            ground_overlay.latlonbox.east = east
+            ground_overlay.latlonbox.west = west
+            ground_overlay.latlonbox.rotation = orientation  # Align top-center of Fan.png
+
+            # Create a placemark description with metadata
             placemark_description = f"""
             <html>
             <head>
                 <title></title>
                 <style>
-                    h1 {{
-                        text-align: center;
-                    }}
                     table {{
                         width: 100%;
                         text-align: center;
@@ -179,17 +192,6 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             pnt.description = placemark_description
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
             pnt.altitudemode = simplekml.AltitudeMode.absolute
-
-            # Add ground overlay for fan image
-            ground_overlay = kml.newgroundoverlay(name=f"Overlay - {image_name}")
-            ground_overlay.icon.href = "Fan.png"
-            ground_overlay.latlonbox.north = lat + 0.00005
-            ground_overlay.latlonbox.south = lat - 0.00005
-            ground_overlay.latlonbox.east = lon + 0.00005
-            ground_overlay.latlonbox.west = lon - 0.00005
-
-            # Ensure proper rotation for Fan.png based on GPSImgDirection
-            ground_overlay.latlonbox.rotation = (orientation + 90) % 360 if orientation else 0
 
             kmz_images.append((image_name, corrected_image_path))
 
