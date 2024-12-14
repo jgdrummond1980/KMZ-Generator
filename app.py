@@ -5,6 +5,8 @@ import requests
 from PIL import Image, ExifTags
 import simplekml
 import streamlit as st
+from datetime import datetime
+
 
 def download_fan_image(fan_image_url, destination):
     """Download the fan image from GitHub and rotate it by -90 degrees."""
@@ -18,6 +20,7 @@ def download_fan_image(fan_image_url, destination):
             rotated_img.save(destination)
     else:
         raise ValueError(f"Failed to download fan image from {fan_image_url}")
+
 
 def correct_image_orientation(image):
     """Correct image orientation based on Exif data."""
@@ -38,6 +41,7 @@ def correct_image_orientation(image):
         st.warning(f"Could not adjust image orientation: {e}")
     return image
 
+
 def convert_to_degrees(value):
     """Convert GPS coordinates to degrees."""
     try:
@@ -48,6 +52,7 @@ def convert_to_degrees(value):
     except Exception as e:
         st.warning(f"Error converting GPS value to degrees: {e}")
         return None
+
 
 def get_gps_metadata(image_path):
     """Extract GPS metadata from a JPEG/PNG image."""
@@ -84,11 +89,13 @@ def get_gps_metadata(image_path):
                 "longitude": lon,
                 "altitude": alt,
                 "orientation": gps_info.get("GPSImgDirection", 0),
+                "date_created": datetime.fromtimestamp(os.path.getctime(image_path)).strftime('%Y-%m-%d %H:%M:%S'),
             }
         return None
     except Exception as e:
         st.error(f"Error extracting metadata from {image_path}: {e}")
         return None
+
 
 def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     """Generate a KMZ file with fan overlays and placemarks."""
@@ -103,29 +110,77 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
             has_data = True
             lat, lon, alt = metadata["latitude"], metadata["longitude"], metadata["altitude"]
             orientation = float(metadata["orientation"])
+            date_created = metadata["date_created"]
             image_name = os.path.basename(image_path)
 
+            # Correct image orientation
             image = Image.open(image_path)
             corrected_image = correct_image_orientation(image)
             corrected_image_path = os.path.join(folder_path, image_name)
             corrected_image.save(corrected_image_path)
 
-            # Add a placemark with altitude and absolute altitude mode
-            pnt = kml.newpoint(name=image_name, coords=[(lon, lat, alt)])
-            pnt.description = f"""
-            <div style="text-align: right; font-size: 14px; font-weight: bold;">
-                Altitude: {alt:.1f} meters<br>
-                Orientation: {orientation:.1f}°<br>
-                Latitude: {lat:.6f}<br>
-                Longitude: {lon:.6f}
-            </div>
-            <div>
-                <img src="{image_name}" alt="Image" width="800" />
-            </div>
+            # Create placemark description with HTML
+            placemark_description = f"""
+            <html>
+            <head>
+                <title></title>
+                <style>
+                    h1 {{
+                        text-align: center;
+                    }}
+                    table {{
+                        width: 100%;
+                        text-align: center;
+                        border-collapse: collapse;
+                    }}
+                    th, td {{
+                        border: 1px solid black;
+                        padding: 5px;
+                    }}
+                    th {{
+                        background-color: grey;
+                        color: white;
+                    }}
+                </style>
+            </head>
+            <body>
+                <h1>
+                    <img src="https://raw.githubusercontent.com/jgdrummond1980/KMZ-Generator/main/CROSS_logo.png" alt="Logo" style="height: 50px;">
+                </h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>DATE CREATED</th>
+                            <th>ALTITUDE</th>
+                            <th>ORIENTATION</th>
+                            <th>LATITUDE</th>
+                            <th>LONGITUDE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{date_created}</td>
+                            <td>{alt:.1f} Meters</td>
+                            <td>{orientation:.1f}°</td>
+                            <td>{lat:.6f}</td>
+                            <td>{lon:.6f}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div>
+                    <img src="{image_name}" alt="Image" width="800" />
+                </div>
+            </body>
+            </html>
             """
+
+            # Add placemark to KML
+            pnt = kml.newpoint(name=image_name, coords=[(lon, lat, alt)])
+            pnt.description = placemark_description
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/paddle/blu-circle.png"
             pnt.altitudemode = simplekml.AltitudeMode.absolute
 
+            # Add ground overlay for fan image
             ground_overlay = kml.newgroundoverlay(name=f"Overlay - {image_name}")
             ground_overlay.icon.href = "Fan.png"
             ground_overlay.latlonbox.north = lat + 0.00005
@@ -139,12 +194,15 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
     if not has_data:
         raise ValueError("No valid GPS metadata found in the uploaded images.")
 
+    # Save fan image
     fan_image_dest = os.path.join(folder_path, "Fan.png")
     os.rename(fan_image_path, fan_image_dest)
 
+    # Save KML file
     kml_file = os.path.join(folder_path, "doc.kml")
     kml.save(kml_file)
 
+    # Package KMZ file
     with zipfile.ZipFile(output_kmz, 'w') as kmz:
         kmz.write(kml_file, "doc.kml")
         for img_name, img_path in kmz_images:
@@ -152,6 +210,7 @@ def create_kmz_with_fan_overlay(folder_path, output_kmz, fan_image_path):
         kmz.write(fan_image_dest, "Fan.png")
 
     os.remove(kml_file)
+
 
 st.set_page_config(page_title="KMZ Generator", layout="wide")
 st.title("JPEG/PNG to KMZ Converter")
